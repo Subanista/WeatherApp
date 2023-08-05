@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "core-js": "^3.8.3",
+    "fuse.js": "^6.6.2",
+    "string-similarity": "^4.0.4",
     "vue": "^3.2.13"
   },
   "devDependencies": {

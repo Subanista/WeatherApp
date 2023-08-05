@@ -1,6 +1,11 @@
 <template>
+  <div id="appTitle">
+    <h1 class="app-title">Weather Application</h1>
+    <WeatherComponent />
+  </div>
   <div id="App" :class="typeof weather.main !='undefined' &&weather.main.temp>5? 'app.hot': ''  ">
     <main>
+      
       <div class="search-box">
           <input 
           name=""
@@ -8,8 +13,17 @@
            type="text" 
            class="search-bar"
            v-model="query"
+           @input="fetchSuggestions"
            @keypress="fetch_weather"
+           placeholder="Choose the location"
            >
+           <div class="suggestions-box" v-if="suggestions.length">
+      <ul class="suggestion-list">
+        <li v-for="suggestion in suggestions" :key="suggestion" @click="selectSuggestion(suggestion)">
+          {{ suggestion }}
+        </li>
+      </ul>
+    </div>
       </div>
       <div class="weather-wrap" v-if="typeof weather.main !='undefined'">
          <div class="location-box">
@@ -28,20 +42,68 @@
 </template>
 
 <script>
-
+import stringSimilarity from 'string-similarity'; // Import the string similarity library
+import Fuse from 'fuse.js'; // Import the fuse.js library
 
 export default {
   name: 'App',
   data(){
     return{
+      suggestions: [],
+      fuse: null,
+      apiKey: 'AIzaSyAfOXNs2EEcOjwLqkjxJtDWE3hiUDdyxzk',
+      manualSuggestions: [
+        'New York, USA',
+        'Paris, France',
+        'Tokyo, Japan','jaffna','kandy','malabe'
+        // Add more manual suggestions here
+      ],
       api_key:'b250277ba17c175a86bd32040ef2c63a',
       url_base:'https://api.openweathermap.org/data/2.5/',
       query:'',
       weather:{}
     }
   },
-  methods:{
-fetch_weather(e){
+  created() {
+    // Fetch locations and initialize fuse.js
+    this.fetchLocations().then(() => {
+      this.fuse = new Fuse(this.locations, { keys: ['formatted_address'] });
+    });
+  },
+  methods:{ 
+
+    fetchLocations() {
+      return fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=&key=${this.apiKey}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'OK') {
+            this.locations = data.results;
+          }
+        });
+    },
+
+    fetchSuggestions() {
+      if (this.query) {
+        fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${this.query}&key=${this.apiKey}`)
+          .then(response => response.json())
+          .then(data => {
+            if (data.status === 'OK') {
+              // Use string similarity to suggest corrections
+              const correctedSuggestions = this.correctQuery(this.query, data.results);
+              this.suggestions = correctedSuggestions;
+            }
+          });
+      } else {
+        this.suggestions = [];
+      }
+    },
+
+    selectSuggestion(suggestion) {
+      this.query = suggestion;
+      this.suggestions = [];
+      this.fetchWeather();
+    },
+    fetch_weather(e){
   if(e.key==="Enter"){
     fetch(`${this.url_base}weather?q=${this.query}&units=metric&APPID=${this.api_key}`)
     .then(res =>{
@@ -63,11 +125,36 @@ dateBuilder(){
   return `${day} ${date} ${month} ${year}`;
 
 },
-}
-}
+
+    correctQuery(query, results) {
+      const locations = results.map(result => result.formatted_address.toLowerCase());
+      const matches = stringSimilarity.findBestMatch(query.toLowerCase(), locations);
+      const correctedSuggestions = matches.ratings
+        .filter(rating => rating.rating > 0.5) // Adjust the threshold as needed
+        .map(match => results[match.index].formatted_address);
+
+      return correctedSuggestions;
+    },
+  
+
+    }
+    
+    
+
+  }
 </script>
 
 <style>
+
+#appTitle {
+  text-align: center;
+  padding: 20px;
+}
+
+.app-title {
+  color: white;
+  margin-top: 0; /* Remove default margin from h1 */
+}
 *{
   margin:0;
   padding: 0;
@@ -167,5 +254,29 @@ transition: 0.4s;
 }
 .weather-box .weather-image{
   position: center;
+}
+.suggestions-box {
+  position: absolute;
+  width: 100%;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  background-color: white;
+  z-index: 1;
+}
+
+.suggestion-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.suggestion-list li {
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.suggestion-list li:hover {
+  background-color: #f2f2f2;
 }
 </style>

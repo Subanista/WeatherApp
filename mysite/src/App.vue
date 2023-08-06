@@ -7,24 +7,32 @@
     <main>
       
       <div class="search-box">
-          <input 
-          name=""
-           id="" 
-           type="text" 
-           class="search-bar"
-           v-model="query"
-           @input="fetchSuggestions"
-           @keypress="fetch_weather"
-           placeholder="Choose the location"
-           >
-           <div class="suggestions-box" v-if="suggestions.length">
-      <ul class="suggestion-list">
-        <li v-for="suggestion in suggestions" :key="suggestion" @click="selectSuggestion(suggestion)">
-          {{ suggestion }}
-        </li>
-      </ul>
+  <div class="search-container">
+    <input
+      name=""
+      id=""
+      type="text"
+      class="search-bar"
+      v-model="query"
+      @input="fetchSuggestions"
+         @keydown.enter="handleEnter"
+      @keypress="fetch_weather"
+      placeholder="Choose the location"
+    >
+    <div class="search-icon">
+      <i class="fa fa-search"></i> <!-- Font Awesome search icon -->
     </div>
-      </div>
+  </div>
+  <div class="suggestions-box" v-if="suggestions.length">
+    <ul class="suggestion-list">
+      <li v-for="suggestion in suggestions" :key="suggestion" @click="selectSuggestion(suggestion)">
+        {{ suggestion }}
+      </li>
+    </ul>
+  </div>
+</div>
+
+
       <div class="weather-wrap" v-if="typeof weather.main !='undefined'">
          <div class="location-box">
           <div class="location">{{weather.name}},{{weather.sys.country}}</div>
@@ -44,16 +52,22 @@
 <script>
 import stringSimilarity from 'string-similarity'; // Import the string similarity library
 import Fuse from 'fuse.js'; // Import the fuse.js library
+import 'font-awesome/css/font-awesome.min.css';
 
 export default {
   name: 'App',
   data(){
     return{
-      suggestions: [],
+      suggestions: ['New York, USA',
+        'Paris, France',
+        'Tokyo, Japan','jaffna','kandy','malabe'],
       fuse: null,
+      locations: ['New York, USA',
+        'Paris, France',
+        'Tokyo, Japan','jaffna','kandy','malabe'],
       apiKey: 'AIzaSyAfOXNs2EEcOjwLqkjxJtDWE3hiUDdyxzk',
       manualSuggestions: [
-        'New York, USA',
+      'New York, USA',
         'Paris, France',
         'Tokyo, Japan','jaffna','kandy','malabe'
         // Add more manual suggestions here
@@ -71,6 +85,14 @@ export default {
     });
   },
   methods:{ 
+
+    handleEnter() {
+      if (this.suggestions.length === 1) {
+        this.query = this.suggestions[0]; // Set the query to the selected suggestion
+        this.suggestions = []; // Clear suggestions
+        this.fetchWeather(); // Fetch weather data
+      }
+    },
 
     fetchLocations() {
       return fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=&key=${this.apiKey}`)
@@ -99,10 +121,11 @@ export default {
     },
 
     selectSuggestion(suggestion) {
-      this.query = suggestion;
-      this.suggestions = [];
-      this.fetchWeather();
-    },
+  this.query = suggestion;
+  this.suggestions = [];
+  this.fetchWeather(); // Fetch weather data after selecting a suggestion
+},
+
     fetch_weather(e){
   if(e.key==="Enter"){
     fetch(`${this.url_base}weather?q=${this.query}&units=metric&APPID=${this.api_key}`)
@@ -199,11 +222,7 @@ transition: 0.4s;
 
 }
 
-.search-box .search-bar:focus{
-  background-color: rgba(255,255,255,0.75);
-  box-shadow: 0px 0px 16px rgba(0,0,0,0.25);
-  border-radius: 6px 0px 16px 0px;
-}
+
 
 .location-box .location {
   color: #FFFFFF;
@@ -257,7 +276,7 @@ transition: 0.4s;
 }
 .suggestions-box {
   position: absolute;
-  width: 100%;
+  width: 50%;
   max-height: 200px;
   overflow-y: auto;
   border: 1px solid #ccc;
@@ -278,5 +297,19 @@ transition: 0.4s;
 
 .suggestion-list li:hover {
   background-color: #f2f2f2;
+}
+
+
+
+.search-container {
+  position: relative;
+}
+
+.search-icon {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  color: #ccc;
 }
 </style>

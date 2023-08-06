@@ -45,8 +45,13 @@
           <div class="weather-description">{{weather.weather[0].description}}</div>
          </div>
       </div>
+      <div class="clock">
+  <span class="clock-time">{{ currentTime }}</span>
+</div>
 </main>
 </div>
+
+
 </template>
 
 <script>
@@ -58,6 +63,7 @@ export default {
   name: 'App',
   data(){
     return{
+      currentDateTime: '',
       suggestions: ['New York, USA',
         'Paris, France',
         'Tokyo, Japan','jaffna','kandy','malabe'],
@@ -83,9 +89,17 @@ export default {
     this.fetchLocations().then(() => {
       this.fuse = new Fuse(this.locations, { keys: ['formatted_address'] });
     });
+    this.updateCurrentTime();
+  setInterval(() => {
+    this.updateCurrentTime();
+  }, 1000); // Update every second
   },
   methods:{ 
-
+    updateCurrentTime() {
+    const now = new Date();
+    const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+    this.currentTime = now.toLocaleTimeString(undefined, options);
+  },
     handleEnter() {
       if (this.suggestions.length === 1) {
         this.query = this.suggestions[0]; // Set the query to the selected suggestion
@@ -121,10 +135,13 @@ export default {
     },
 
     selectSuggestion(suggestion) {
+  console.log('Selected suggestion:', suggestion);
   this.query = suggestion;
   this.suggestions = [];
-  this.fetchWeather(); // Fetch weather data after selecting a suggestion
+  this.fetchWeather();
 },
+
+
 
     fetch_weather(e){
   if(e.key==="Enter"){
@@ -162,13 +179,21 @@ dateBuilder(){
 
     }
     
-    
 
   }
 </script>
 
 <style>
+.clock {
+  font-size: 28px;
+  color: #333; /* Change to your desired text color */
+  text-align: center; /* Align the clock to the center */
+  margin-top: 10px; /* Add some spacing above the clock */
+}
 
+.clock-time {
+  font-weight: bold;
+}
 #appTitle {
   text-align: center;
   padding: 20px;
@@ -311,5 +336,11 @@ transition: 0.4s;
   right: 20px;
   transform: translateY(-50%);
   color: #ccc;
+}
+.current-date-time {
+  font-size: 18px;
+  color: #333; /* Change to your desired text color */
+  text-align: center; /* Align the date and time to the center */
+  margin-top: 10px; /* Add some spacing above the date and time */
 }
 </style>

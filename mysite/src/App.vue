@@ -1,57 +1,53 @@
+
 <template>
-  <div id="appTitle">
-    <h1 class="app-title">Weather Application</h1>
-    <WeatherComponent />
-  </div>
-  <div id="App" :class="typeof weather.main !='undefined' &&weather.main.temp>5? 'app.hot': ''  ">
-    <main>
-      
-      <div class="search-box">
-  <div class="search-container">
-    <input
-      name=""
-      id=""
-      type="text"
-      class="search-bar"
-      v-model="query"
-      @input="fetchSuggestions"
-         @keydown.enter="handleEnter"
-      @keypress="fetch_weather"
-      placeholder="Choose the location"
-    >
-    <div class="search-icon">
-      <i class="fa fa-search"></i> <!-- Font Awesome search icon -->
+  <div id="app" :class="weatherClass">
+    <div class="background-image" :style="backgroundImageStyle"></div>
+    <div class="overlay">
+      <div class="weather-container">
+        <div class="weather-header">
+          <h1 class="app-title">Weather Application</h1>
+          <WeatherComponent />
+        </div>
+        <div class="search-box">
+          <div class="search-container">
+            <input
+              type="text"
+              class="search-bar"
+              v-model="query"
+              @input="fetchSuggestions"
+              @keydown.enter="handleEnter"
+              @keypress="fetch_weather"
+              placeholder="Search location"
+            >
+            <div class="search-icon">
+              <i class="fa fa-search"></i>
+            </div>
+          </div>
+          <ul class="suggestion-list" v-if="suggestions.length">
+            <li v-for="suggestion in suggestions" :key="suggestion" @click="selectSuggestion(suggestion)">
+              {{ suggestion }}
+            </li>
+          </ul>
+        </div>
+        <div class="weather-info" v-if="typeof weather.main != 'undefined'">
+          <div class="location">{{ weather.name }}, {{ weather.sys.country }}</div>
+          <div class="date">{{ dateBuilder() }}</div>
+          <div class="temperature">{{ Math.round(weather.main.temp) }}°C</div>
+          <div class="weather-description">{{ weather.weather[0].description }}</div>
+          <div class="weather-image">
+            <img id="wicon" alt="weather icon" :src="`https://openweathermap.org/img/w/${weather.weather[0].icon}.png`">
+          </div>
+        </div>
+        <div class="clock">
+          <div class="clock-face">
+            <div class="hour-hand" :style="hourHandStyle"></div>
+            <div class="minute-hand" :style="minuteHandStyle"></div>
+            <div class="second-hand" :style="secondHandStyle"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="suggestions-box" v-if="suggestions.length">
-    <ul class="suggestion-list">
-      <li v-for="suggestion in suggestions" :key="suggestion" @click="selectSuggestion(suggestion)">
-        {{ suggestion }}
-      </li>
-    </ul>
-  </div>
-</div>
-
-
-      <div class="weather-wrap" v-if="typeof weather.main !='undefined'">
-         <div class="location-box">
-          <div class="location">{{weather.name}},{{weather.sys.country}}</div>
-          <div class="date">{{dateBuilder()}}</div>
-         </div>
-         <div class="weather-box">
-          <div class="temp">{{Math.round(weather.main.temp)}}'c </div>
-          <div class="weather-image"><img id="wicon" alt="weather icon" v-bind:src="`https://openweathermap.org/img/w/${weather.weather[0].icon}.png`"></div>
-          <div class="weather">{{weather.weather[0].main}}</div>
-          <div class="weather-description">{{weather.weather[0].description}}</div>
-         </div>
-      </div>
-      <div class="clock">
-  <span class="clock-time">{{ currentTime }}</span>
-</div>
-</main>
-</div>
-
-
 </template>
 
 <script>
@@ -63,6 +59,11 @@ export default {
   name: 'App',
   data(){
     return{
+      backgroundImageUrl: '', // Initialize with a default or actual value
+    hourRotation: 0, // Initialize with a default or actual value
+    minuteRotation: 0, // Initialize with a default or actual value
+    secondRotation: 0, // Initialize with a default or actual value
+  
       currentDateTime: '',
       suggestions: ['New York, USA',
         'Paris, France',
@@ -84,22 +85,65 @@ export default {
       weather:{}
     }
   },
-  created() {
-    // Fetch locations and initialize fuse.js
-    this.fetchLocations().then(() => {
-      this.fuse = new Fuse(this.locations, { keys: ['formatted_address'] });
-    });
-    this.updateCurrentTime();
+
+  computed: {
+    backgroundImageStyle() {
+      console.log("Calculating backgroundImageStyle...");
+      return {
+        backgroundImage: `url(${this.backgroundImageUrl})`
+      };
+    },
+    weatherClass() {
+      console.log("Calculating backgroundImageStyle...");
+      return {
+        'app.hot': typeof this.weather.main != 'undefined' && this.weather.main.temp > 5
+      };
+    },
+    hourHandStyle() {
+       console.log("Calculating backgroundImageStyle...");
+      return {
+        transform: `rotate(${this.hourRotation}deg)`
+      };
+    },
+    minuteHandStyle() {
+      console.log("Calculating backgroundImageStyle...");
+      return {
+        transform: `rotate(${this.minuteRotation}deg)`
+      };
+    },
+    secondHandStyle() {
+       console.log("Calculating backgroundImageStyle...");
+      return {
+        transform: `rotate(${this.secondRotation}deg)`
+      };
+    
+  },
+  },
+ 
+created() {
+  setInterval(() => {
+    const now = new Date();
+    this.secondRotation = (now.getSeconds() / 60) * 360;
+    this.minuteRotation = ((now.getMinutes() + now.getSeconds() / 60) / 60) * 360;
+    this.hourRotation = ((now.getHours() + now.getMinutes() / 60) / 12) * 360;
+  }, 1000); // Update every second
+  // Fetch locations and initialize fuse.js
+  this.fetchLocations().then(() => {
+    this.fuse = new Fuse(this.locations, { keys: ['formatted_address'] });
+  });
+  this.updateCurrentTime();
   setInterval(() => {
     this.updateCurrentTime();
   }, 1000); // Update every second
-  },
+},
+
   methods:{ 
     updateCurrentTime() {
     const now = new Date();
     const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
     this.currentTime = now.toLocaleTimeString(undefined, options);
   },
+
     handleEnter() {
       if (this.suggestions.length === 1) {
         this.query = this.suggestions[0]; // Set the query to the selected suggestion
@@ -109,14 +153,21 @@ export default {
     },
 
     fetchLocations() {
-      return fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=&key=${this.apiKey}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'OK') {
-            this.locations = data.results;
-          }
-        });
-    },
+  return fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=&key=${this.apiKey}`)
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'OK') {
+//
+      } else {
+        //
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching data:', error);
+    });
+},
+
+
 
     fetchSuggestions() {
       if (this.query) {
@@ -134,7 +185,7 @@ export default {
       }
     },
 
-    selectSuggestion(suggestion) {
+    selectSuggestion(suggestion){
   console.log('Selected suggestion:', suggestion);
   this.query = suggestion;
   this.suggestions = [];
@@ -174,16 +225,17 @@ dateBuilder(){
         .map(match => results[match.index].formatted_address);
 
       return correctedSuggestions;
-    },
+    }
   
 
-    }
+  }
     
 
-  }
+}; 
+
 </script>
 
-<style>
+<style scoped>
 .clock {
   font-size: 28px;
   color: #333; /* Change to your desired text color */
@@ -246,8 +298,6 @@ border-radius: 10px 10px 10px 10px;
 transition: 0.4s;
 
 }
-
-
 
 .location-box .location {
   color: #FFFFFF;
@@ -343,4 +393,117 @@ transition: 0.4s;
   text-align: center; /* Align the date and time to the center */
   margin-top: 10px; /* Add some spacing above the date and time */
 }
+
+
+
+.background-image {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 600%;
+  z-index: -1;
+  /* Add appropriate background images for different weather conditions */
+}
+
+.overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  /* Add overlay for better visibility of text and UI elements */
+}
+
+.weather-container {
+  padding: 20px;
+  color: white;
+  text-align: center;
+  position: relative;
+}
+
+.weather-header {
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  /* Customize search input styling */
+}
+
+.suggestion-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0;
+}
+
+.suggestion-list li {
+  cursor: pointer;
+  padding: 5px;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.weather-info {
+  margin-top: 20px;
+}
+
+.temperature {
+  font-size: 48px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.weather-description {
+  font-size: 20px;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.clock {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.clock-face {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+  position: relative;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hour-hand,
+.minute-hand,
+.second-hand {
+  position: absolute;
+  transform-origin: bottom center;
+  transition: transform 0.5s cubic-bezier(0.4, 2.3, 0.5, 1);
+}
+
+.second-hand {
+  width: 2px;
+  height: 50px;
+  background-color: black;
+  top: 25%;
+}
+
+.minute-hand {
+  width: 4px;
+  height: 40px;
+  background-color: black;
+  top: 30%;
+}
+
+.hour-hand {
+  width: 6px;
+  height: 30px;
+  background-color: black;
+  top: 35%;
+}
+
+
+
 </style>
+
+
